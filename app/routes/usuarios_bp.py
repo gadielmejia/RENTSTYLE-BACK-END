@@ -1,5 +1,4 @@
 from flask import Blueprint, request, current_app
-from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 from app.database.database import db
 from app.models.usuarios import Usuarios
@@ -101,29 +100,12 @@ def create_usuario():
         if Usuarios.query.filter_by(correo=correo_lower).first():
             return response_error("El correo ya está registrado", 400)
 
-        password = data['Contrasena']
-        if is_sha256_hash(password):
-            return response_error("La contraseña debe ser texto plano, no el hash", 400)
+        data['Contrasena'] = normalize_password(data['Contrasena'])
 
-        if is_admin_request():
-            id_rol = None
-            if 'idRol' in data and data['idRol']:
-                try:
-                    id_rol = int(data['idRol'])
-                except (TypeError, ValueError):
-                    return response_error("El rol especificado no es válido", 400)
-                if not Roles.query.get(id_rol):
-                    return response_error("El rol especificado no existe", 400)
-            if id_rol is None:
-                cliente_role = Roles.query.filter(func.lower(Roles.nombre) == 'cliente').first()
-                if not cliente_role:
-                    return response_error("No se encontró el rol cliente en el sistema", 500)
-                id_rol = cliente_role.idRol
-        else:
-            cliente_role = Roles.query.filter(func.lower(Roles.nombre) == 'cliente').first()
-            if not cliente_role:
-                return response_error("No se encontró el rol cliente en el sistema", 500)
-            id_rol = cliente_role.idRol
+        cliente_rol = Roles.query.filter_by(nombre='cliente').first()
+        if not cliente_rol:
+            return response_error("No se pudo asignar el rol de cliente", 500)
+        id_rol = cliente_rol.idRol
 
         avatar_url = None
         if 'avatar' in request.files:
