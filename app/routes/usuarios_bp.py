@@ -1,10 +1,9 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
 from werkzeug.security import generate_password_hash
 from app.database.database import db
 from app.models.usuarios import Usuarios
 from app.models.roles import Roles
 from app.utils.response import response_success, response_error, serialize_model, serialize_models
-from werkzeug.security import generate_password_hash
 from app.utils.cloudinary_utils import upload_file_to_cloudinary, get_cloudinary_url
 import hashlib
 
@@ -73,7 +72,7 @@ def create_usuario():
         if not data:
             return response_error("El body debe ser un JSON válido o multipart/form-data", 400)
 
-        required_fields = ['nombre', 'documento', 'correo', 'Contrasena', 'idRol']
+        required_fields = ['nombre', 'documento', 'correo', 'Contrasena']
         for field in required_fields:
             if field not in data or str(data[field]).strip() == "":
                 return response_error(f"El campo '{field}' es requerido", 400)
@@ -86,16 +85,10 @@ def create_usuario():
 
         data['Contrasena'] = normalize_password(data['Contrasena'])
 
-        if 'idRol' not in data or not data['idRol']:
-            return response_error("El rol es obligatorio al crear un usuario", 400)
-
-        try:
-            id_rol = int(data['idRol'])
-        except (TypeError, ValueError):
-            return response_error("El rol especificado no es válido", 400)
-
-        if not Roles.query.get(id_rol):
-            return response_error("El rol especificado no existe", 400)
+        cliente_rol = Roles.query.filter_by(nombre='cliente').first()
+        if not cliente_rol:
+            return response_error("No se pudo asignar el rol de cliente", 500)
+        id_rol = cliente_rol.idRol
 
         avatar_url = None
         if 'avatar' in request.files:

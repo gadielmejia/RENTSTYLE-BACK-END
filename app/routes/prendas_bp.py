@@ -1,6 +1,7 @@
 from flask import Blueprint, request, current_app
 import os
 import uuid
+import json
 from werkzeug.utils import secure_filename
 import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
@@ -486,7 +487,6 @@ def update_prenda(id):
             if not Categoria.query.get(data['idCategoria']):
                 return response_error("La categoría especificada no existe", 400)
             prenda.idCategoria = data['idCategoria']
-
         prenda.save()
         return response_success(serialize_model(prenda), "Prenda actualizada exitosamente")
     except Exception as e:
